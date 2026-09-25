@@ -1,0 +1,35 @@
+{
+    "name": "Workflow",
+    "alias": "workflow",
+    "code": "workflow",
+    "display_name": "Approval Workflow",
+    "description": "Configurable approval workflow, delegation and approval audit trail.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": true,
+    "price_monthly": "75000",
+    "requires": [
+        "core"
+    ],
+    "optional": [],
+    "permissions": [
+        "workflow.workflow.*",
+        "workflow.approval.act",
+        "workflow.delegation.manage",
+        "workflow.settings.manage"
+    ],
+    "document_types": [],
+    "emits": [
+        "ApprovalRequested",
+        "DocumentApproved",
+        "DocumentRejected"
+    ],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Workflow\\Providers\\WorkflowServiceProvider"
+    ],
+    "files": []
+}

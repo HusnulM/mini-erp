@@ -1,0 +1,38 @@
+{
+    "name": "Reporting",
+    "alias": "reporting",
+    "code": "reporting",
+    "display_name": "Reporting & Dashboard",
+    "description": "Dashboards per role and operational/financial reports.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": false,
+    "price_monthly": "0",
+    "requires": [
+        "core"
+    ],
+    "optional": [
+        "inventory",
+        "procurement",
+        "pos",
+        "finance"
+    ],
+    "permissions": [
+        "reporting.dashboard.read",
+        "reporting.sales.read",
+        "reporting.purchase.read",
+        "reporting.inventory.read",
+        "reporting.financial.read",
+        "reporting.export"
+    ],
+    "document_types": [],
+    "emits": [],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Reporting\\Providers\\ReportingServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-inventory",
+    "description": "Inventory & Warehouse module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Inventory\\": "app/",
+            "Modules\\Inventory\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Inventory\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Inventory\\Tests\\": "tests/"
+        }
+    }
+}

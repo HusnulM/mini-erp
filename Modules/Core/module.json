@@ -1,0 +1,34 @@
+{
+    "name": "Core",
+    "alias": "core",
+    "code": "core",
+    "display_name": "Core",
+    "description": "Organisasi (company, branch, store, warehouse), user, role, permission, numbering, settings, audit log, setup wizard.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": true,
+    "is_addon": false,
+    "price_monthly": "0",
+    "requires": [],
+    "optional": [],
+    "permissions": [
+        "core.company.*",
+        "core.branch.*",
+        "core.store.*",
+        "core.warehouse.*",
+        "core.user.*",
+        "core.role.*",
+        "core.numbering.manage",
+        "core.settings.manage",
+        "core.audit_log.read"
+    ],
+    "document_types": [],
+    "emits": [],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Core\\Providers\\CoreServiceProvider"
+    ],
+    "files": []
+}

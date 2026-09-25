@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-procurement",
+    "description": "Procurement module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Procurement\\": "app/",
+            "Modules\\Procurement\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Procurement\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Procurement\\Tests\\": "tests/"
+        }
+    }
+}

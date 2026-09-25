@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-finance",
+    "description": "Finance & Accounting module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Finance\\": "app/",
+            "Modules\\Finance\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Finance\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Finance\\Tests\\": "tests/"
+        }
+    }
+}

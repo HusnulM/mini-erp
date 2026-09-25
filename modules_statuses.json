@@ -1,0 +1,10 @@
+{
+    "Core": true,
+    "MasterData": true,
+    "Workflow": true,
+    "Inventory": true,
+    "Procurement": true,
+    "Pos": true,
+    "Finance": true,
+    "Reporting": true
+}

@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-master",
+    "description": "Master Data module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\MasterData\\": "app/",
+            "Modules\\MasterData\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\MasterData\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\MasterData\\Tests\\": "tests/"
+        }
+    }
+}

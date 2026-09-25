@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-reporting",
+    "description": "Reporting & Dashboard module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Reporting\\": "app/",
+            "Modules\\Reporting\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Reporting\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Reporting\\Tests\\": "tests/"
+        }
+    }
+}

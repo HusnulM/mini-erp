@@ -1,0 +1,42 @@
+{
+    "name": "Pos",
+    "alias": "pos",
+    "code": "pos",
+    "display_name": "Sales & POS",
+    "description": "POS terminal, cashier shift, POS transaction, payment, sales return.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": true,
+    "price_monthly": "150000",
+    "requires": [
+        "inventory"
+    ],
+    "optional": [
+        "finance",
+        "workflow"
+    ],
+    "permissions": [
+        "pos.terminal.*",
+        "pos.shift.*",
+        "pos.transaction.*",
+        "pos.return.*",
+        "pos.discount.override",
+        "pos.settings.manage"
+    ],
+    "document_types": [
+        "POS",
+        "RET"
+    ],
+    "emits": [
+        "SalesCompleted",
+        "SalesReturned"
+    ],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Pos\\Providers\\PosServiceProvider"
+    ],
+    "files": []
+}

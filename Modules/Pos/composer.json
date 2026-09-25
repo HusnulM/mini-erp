@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-pos",
+    "description": "Sales & POS module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Pos\\": "app/",
+            "Modules\\Pos\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Pos\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Pos\\Tests\\": "tests/"
+        }
+    }
+}

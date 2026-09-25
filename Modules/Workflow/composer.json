@@ -1,0 +1,17 @@
+{
+    "name": "mini-erp/module-workflow",
+    "description": "Approval Workflow module",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Workflow\\": "app/",
+            "Modules\\Workflow\\Database\\Seeders\\": "database/seeders/",
+            "Modules\\Workflow\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Workflow\\Tests\\": "tests/"
+        }
+    }
+}

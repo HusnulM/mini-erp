@@ -1,0 +1,48 @@
+{
+    "name": "Finance",
+    "alias": "finance",
+    "code": "finance",
+    "display_name": "Finance & Accounting",
+    "description": "Chart of accounts, account mapping, journal engine, GL, AP, cash & bank, period closing.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": true,
+    "price_monthly": "200000",
+    "requires": [
+        "master"
+    ],
+    "optional": [
+        "workflow"
+    ],
+    "permissions": [
+        "finance.coa.*",
+        "finance.account_mapping.*",
+        "finance.journal.*",
+        "finance.ap.*",
+        "finance.cash_bank.*",
+        "finance.period.close",
+        "finance.settings.manage"
+    ],
+    "document_types": [
+        "JE",
+        "INV",
+        "PAY"
+    ],
+    "emits": [
+        "JournalPosted"
+    ],
+    "listens": [
+        "GoodsReceiptPosted",
+        "VendorInvoicePosted",
+        "SalesCompleted",
+        "SalesReturned",
+        "StockAdjusted"
+    ],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Finance\\Providers\\FinanceServiceProvider"
+    ],
+    "files": []
+}

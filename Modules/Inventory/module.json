@@ -1,0 +1,42 @@
+{
+    "name": "Inventory",
+    "alias": "inventory",
+    "code": "inventory",
+    "display_name": "Inventory & Warehouse",
+    "description": "Stock balance, stock ledger, adjustment, transfer, reservation, stock opname.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": false,
+    "price_monthly": "0",
+    "requires": [
+        "master"
+    ],
+    "optional": [
+        "workflow"
+    ],
+    "permissions": [
+        "inventory.stock.read",
+        "inventory.adjustment.*",
+        "inventory.transfer.*",
+        "inventory.reservation.*",
+        "inventory.opname.*",
+        "inventory.settings.manage"
+    ],
+    "document_types": [
+        "ADJ",
+        "TRF",
+        "OPN"
+    ],
+    "emits": [
+        "StockAdjusted",
+        "StockTransferred"
+    ],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Inventory\\Providers\\InventoryServiceProvider"
+    ],
+    "files": []
+}

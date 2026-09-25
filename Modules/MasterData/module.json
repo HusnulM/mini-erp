@@ -1,0 +1,36 @@
+{
+    "name": "MasterData",
+    "alias": "master",
+    "code": "master",
+    "display_name": "Master Data",
+    "description": "Product, category, brand, UOM, customer, vendor, employee, tax, payment method.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": true,
+    "is_addon": false,
+    "price_monthly": "0",
+    "requires": [
+        "core"
+    ],
+    "optional": [],
+    "permissions": [
+        "master.product.*",
+        "master.product_category.*",
+        "master.uom.*",
+        "master.customer.*",
+        "master.vendor.*",
+        "master.employee.*",
+        "master.tax.*",
+        "master.payment_method.*",
+        "master.settings.manage"
+    ],
+    "document_types": [],
+    "emits": [],
+    "listens": [],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\MasterData\\Providers\\MasterDataServiceProvider"
+    ],
+    "files": []
+}

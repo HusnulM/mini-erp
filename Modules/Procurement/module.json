@@ -1,0 +1,45 @@
+{
+    "name": "Procurement",
+    "alias": "procurement",
+    "code": "procurement",
+    "display_name": "Procurement",
+    "description": "Purchase request, purchase order, goods receipt, vendor invoice, purchase return.",
+    "version": "0.1.0",
+    "status": "available",
+    "is_core": false,
+    "is_addon": true,
+    "price_monthly": "150000",
+    "requires": [
+        "inventory",
+        "workflow"
+    ],
+    "optional": [
+        "finance"
+    ],
+    "permissions": [
+        "procurement.purchase_request.*",
+        "procurement.purchase_order.*",
+        "procurement.goods_receipt.*",
+        "procurement.vendor_invoice.*",
+        "procurement.settings.manage"
+    ],
+    "document_types": [
+        "PR",
+        "PO",
+        "GR"
+    ],
+    "emits": [
+        "PurchaseOrderApproved",
+        "GoodsReceiptPosted",
+        "VendorInvoicePosted"
+    ],
+    "listens": [
+        "DocumentApproved"
+    ],
+    "installer": null,
+    "priority": 0,
+    "providers": [
+        "Modules\\Procurement\\Providers\\ProcurementServiceProvider"
+    ],
+    "files": []
+}
