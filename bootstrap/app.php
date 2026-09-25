@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\CentralRoutes;
 use App\Tenancy\Middleware\EnsureTenantIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,7 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureTenantIsActive::class,
         ]);
 
-        $middleware->redirectGuestsTo('/login');
+        // Operators log in on the central panel, tenant users on their subdomain.
+        $middleware->redirectGuestsTo(fn (Request $request) => CentralRoutes::isCentralHost($request->getHost())
+            ? central_route('admin.login')
+            : '/login');
+        $middleware->redirectUsersTo(fn (Request $request) => CentralRoutes::isCentralHost($request->getHost())
+            ? central_route('admin.tenants.index')
+            : '/');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

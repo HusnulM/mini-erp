@@ -1,15 +1,18 @@
 <?php
 
+use App\Support\CentralRoutes;
 use Illuminate\Support\Facades\Route;
 
 /*
-| Central routes: landing, registration, operator panel.
-| Bound to central domains so they never answer on a tenant host.
+| Central routes: landing, registration, operator panel (routes/central.php).
+| Bound to central domains so they never answer on a tenant host. The first
+| central domain gets "central.*" names, the others "central.{domain}.*";
+| use central_route('name') to link to them.
 | Tenant routes live in Modules/{Name}/routes/tenant.php.
 */
 
-foreach (config('erp.central_domains') as $domain) {
-    Route::domain($domain)->name(count(config('erp.central_domains')) > 1 ? "central.{$domain}." : 'central.')->group(function () {
-        Route::get('/', fn () => view('central.home'))->name('home');
-    });
+foreach (CentralRoutes::domains() as $domain) {
+    Route::domain($domain)
+        ->name(CentralRoutes::prefix($domain))
+        ->group(base_path('routes/central.php'));
 }

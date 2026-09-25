@@ -7,6 +7,7 @@ use App\Central\Enums\TenantStatus;
 use App\Tenancy\Database\TenantDatabaseConfig;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -27,6 +28,7 @@ use Stancl\Tenancy\DatabaseConfig;
  * @property ?string $db_username
  * @property ?string $db_password decrypted on read
  * @property ?string $db_host
+ * @property ?Carbon $email_verified_at
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
@@ -52,6 +54,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'status' => TenantStatus::class,
             'mode' => TenantMode::class,
             'db_password' => 'encrypted',
+            'email_verified_at' => 'datetime',
             'trial_ends_at' => 'datetime',
             'setup_completed_at' => 'datetime',
             'suspended_at' => 'datetime',
@@ -63,7 +66,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     {
         return [
             'id', 'code', 'name', 'slug', 'owner_name', 'owner_email', 'phone',
-            'status', 'mode', 'db_name', 'db_username', 'db_password', 'db_host',
+            'email_verified_at', 'status', 'mode', 'db_name', 'db_username', 'db_password', 'db_host',
             'trial_ends_at', 'setup_completed_at', 'suspended_at',
             'created_at', 'updated_at',
         ];
@@ -112,6 +115,39 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function provisioningRuns(): HasMany
     {
         return $this->hasMany(ProvisioningRun::class);
+    }
+
+    public function latestProvisioningRun(): HasOne
+    {
+        return $this->hasOne(ProvisioningRun::class)->latestOfMany();
+    }
+
+    /**
+     * What the owner chose at registration, kept in the JSON `data` column
+     * until provisioning is done: plan_id, billing_cycle and admin_password
+     * (a password HASH, encrypted with APP_KEY; removed after create_admin).
+     *
+     * @return array{plan_id?: int, billing_cycle?: string, admin_password?: string}
+     */
+    public function registration(): array
+    {
+        return $this->getAttributes()['registration'] ?? [];
+    }
+
+    /** @param  array<string, mixed>  $registration */
+    public function setRegistration(array $registration): static
+    {
+        $this->setAttribute('registration', $registration);
+
+        return $this;
+    }
+
+    /** Absolute URL on the tenant's primary domain, e.g. http://tokoabc.erp.localhost/login */
+    public function url(string $path = '/'): string
+    {
+        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'https';
+
+        return $scheme.'://'.$this->primaryDomain().'/'.ltrim($path, '/');
     }
 
     public function primaryDomain(): ?string
