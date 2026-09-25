@@ -2,41 +2,51 @@
 
 namespace App\Central\Console;
 
-use App\Central\Enums\TenantMode;
-use App\Central\Enums\TenantStatus;
-use App\Central\Models\Tenant;
-use App\Central\Provisioning\TenantDatabaseProvisioner;
+use App\Central\Enums\ProvisioningStatus;
+use App\Central\Http\Requests\RegisterTenantRequest;
+use App\Central\Models\Plan;
+use App\Central\Provisioning\ProvisioningRunner;
+use App\Central\Registration\RegisterTenant;
+use App\Central\Registration\VerifyRegistration;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
-use Throwable;
+use Illuminate\Support\Str;
 
 /**
- * Development helper: creates a tenant and provisions it synchronously.
- * Sprint 2 replaces this path with registration + the queued, step-logged
- * ProvisionTenant job; the provisioner methods stay the same.
+ * Development helper: registration without the form, email or captcha,
+ * provisioned synchronously through the same steps as ProvisionTenant
+ * (subscription, plan modules, admin user, logged run).
  */
 class CreateTenantCommand extends Command
 {
     protected $signature = 'erp:tenant:create
         {slug : Subdomain, e.g. tokoabc}
         {--name= : Company name}
-        {--email= : Owner email}';
+        {--email= : Owner email (also the admin login)}
+        {--password= : Admin password (default: random, printed)}
+        {--plan=STARTER : Plan code}';
 
-    protected $description = '[dev] Create a tenant with its own database and MySQL user';
+    protected $description = '[dev] Create and provision a tenant (own database, MySQL user, plan modules, admin)';
 
-    public function handle(TenantDatabaseProvisioner $provisioner): int
+    public function handle(RegisterTenant $register, VerifyRegistration $verify, ProvisioningRunner $runner): int
     {
         $slug = strtolower((string) $this->argument('slug'));
+        $password = $this->option('password') ?: Str::password(16, symbols: false);
         $data = [
             'slug' => $slug,
-            'name' => $this->option('name') ?: ucfirst($slug),
-            'email' => $this->option('email') ?: "owner@{$slug}.test",
+            'company_name' => $this->option('name') ?: ucfirst($slug),
+            'owner_name' => $this->option('name') ?: ucfirst($slug),
+            'owner_email' => $this->option('email') ?: "owner@{$slug}.test",
+            'password' => $password,
+            'billing_cycle' => 'monthly',
+            'plan' => strtoupper((string) $this->option('plan')),
         ];
 
         $validator = Validator::make($data, [
-            'slug' => ['required', 'regex:/^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/', 'not_in:'.implode(',', config('erp.reserved_subdomains')), 'unique:central.tenants,slug'],
-            'name' => ['required', 'max:150'],
-            'email' => ['required', 'email'],
+            'slug' => ['required', 'regex:'.RegisterTenantRequest::SLUG_PATTERN, 'not_in:'.implode(',', config('erp.reserved_subdomains')), 'unique:central.tenants,slug'],
+            'company_name' => ['required', 'max:150'],
+            'owner_email' => ['required', 'email', 'unique:central.tenants,owner_email'],
+            'plan' => ['required', 'exists:central.plans,code'],
         ]);
 
         if ($validator->fails()) {
@@ -47,41 +57,32 @@ class CreateTenantCommand extends Command
             return self::FAILURE;
         }
 
-        $tenant = Tenant::create([
-            'code' => strtoupper(str_replace('-', '', $slug)),
-            'name' => $data['name'],
-            'slug' => $slug,
-            'owner_name' => $data['name'],
-            'owner_email' => $data['email'],
-            'status' => TenantStatus::Provisioning,
-            'mode' => TenantMode::Saas,
-        ]);
+        $tenant = $register($data, Plan::where('code', $data['plan'])->firstOrFail(), sendVerification: false);
+        $run = $verify($tenant, dispatch: false);
 
-        $domain = $slug.'.'.config('erp.tenant_base_domain');
-        $tenant->domains()->create(['domain' => $domain, 'is_primary' => true]);
+        // Same runner as the queued job; retries happen immediately here.
+        while ($runner->execute($run) !== null) {
+            $this->components->warn('Step failed, retrying: '.$run->fresh()->error);
+        }
 
-        try {
-            $this->components->task('Reserve names', fn () => $provisioner->reserveNames($tenant));
-            $this->components->task('Create database', fn () => $provisioner->createDatabase($tenant));
-            $this->components->task('Create MySQL user', fn () => $provisioner->createDatabaseUser($tenant));
-            $this->components->task('Migrate core modules', fn () => $provisioner->migrateCoreModules($tenant));
-            $this->components->task('Seed defaults', fn () => $provisioner->seed($tenant));
-        } catch (Throwable $e) {
-            $tenant->update(['status' => TenantStatus::Failed]);
-            $this->components->error($e->getMessage());
+        $run->refresh();
+        $this->table(['#', 'Step', 'Status', 'Attempts', 'Message'], $run->steps->map(fn ($s) => [
+            $s->seq, $s->step, $s->status->value, $s->attempts, Str::limit((string) $s->message, 80),
+        ]));
+
+        if ($run->status !== ProvisioningStatus::Done) {
+            $this->components->error('Provisioning failed: '.$run->error);
 
             return self::FAILURE;
         }
 
-        $tenant->update([
-            'status' => TenantStatus::Trial,
-            'trial_ends_at' => now()->addDays(14),
-        ]);
-
+        $tenant->refresh();
         $this->components->twoColumnDetail('Tenant ID', $tenant->id);
+        $this->components->twoColumnDetail('Plan', $data['plan']);
         $this->components->twoColumnDetail('Database', $tenant->db_name);
         $this->components->twoColumnDetail('MySQL user', $tenant->db_username);
-        $this->components->twoColumnDetail('URL', 'http://'.$domain);
+        $this->components->twoColumnDetail('Login', $tenant->url('login'));
+        $this->components->twoColumnDetail('Admin', $tenant->owner_email.' / '.($this->option('password') ? '(from --password)' : $password));
 
         return self::SUCCESS;
     }

@@ -40,6 +40,14 @@
         "StockAdjusted"
     ],
     "installer": null,
+    "menu": [
+        {
+            "label": "Finance",
+            "route": "finance.index",
+            "permission": "finance.journal.view",
+            "order": 50
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Finance\\Providers\\FinanceServiceProvider"

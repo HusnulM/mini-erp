@@ -3,6 +3,7 @@
 use App\Central\Http\Controllers\Admin\LoginController;
 use App\Central\Http\Controllers\Admin\ProvisioningController;
 use App\Central\Http\Controllers\Admin\TenantController;
+use App\Central\Http\Controllers\Admin\TenantModuleController;
 use App\Central\Http\Controllers\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,5 +35,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('tenants/{tenant}/runs/{run}/steps/{step}/retry', [ProvisioningController::class, 'retry'])
             ->middleware('can:retry-provisioning')
             ->name('provisioning.retry');
+
+        Route::post('tenants/{tenant}/modules/{module}/activate', [TenantModuleController::class, 'activate'])
+            ->middleware('can:manage-modules')->name('modules.activate');
+        Route::post('tenants/{tenant}/modules/{module}/deactivate', [TenantModuleController::class, 'deactivate'])
+            ->middleware('can:manage-modules')->name('modules.deactivate');
+        Route::post('tenants/{tenant}/modules/{module}/addon', [TenantModuleController::class, 'addon'])
+            ->middleware('can:manage-addons')->name('modules.addon');
     });
 });

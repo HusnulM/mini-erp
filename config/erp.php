@@ -57,6 +57,12 @@ return [
     */
     'core_modules' => ['core', 'master'],
 
+    /*
+    | "entity.*" in a module.json permission list expands to these actions,
+    | e.g. core.company.* → core.company.view, core.company.create, ...
+    */
+    'permission_actions' => ['view', 'create', 'update', 'delete'],
+
     'modules_path' => base_path('Modules'),
 
     /*

@@ -23,7 +23,7 @@ class RegisterTenant
      * @param  array{company_name: string, slug: string, owner_name: string, owner_email: string,
      *               password: string, phone?: ?string, billing_cycle: string}  $data
      */
-    public function __invoke(array $data, Plan $plan): Tenant
+    public function __invoke(array $data, Plan $plan, bool $sendVerification = true): Tenant
     {
         $tenant = DB::connection('central')->transaction(function () use ($data, $plan) {
             $tenant = new Tenant([
@@ -54,8 +54,10 @@ class RegisterTenant
             return $tenant;
         });
 
-        Notification::route('mail', [$tenant->owner_email => $tenant->owner_name])
-            ->notify(new VerifyRegistrationEmail($tenant));
+        if ($sendVerification) {
+            Notification::route('mail', [$tenant->owner_email => $tenant->owner_name])
+                ->notify(new VerifyRegistrationEmail($tenant));
+        }
 
         return $tenant;
     }

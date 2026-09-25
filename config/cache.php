@@ -34,9 +34,11 @@ return [
 
     'stores' => [
 
+        // Used by the tests. Serializing makes it behave like Redis, including
+        // the serializable_classes restriction below.
         'array' => [
             'driver' => 'array',
-            'serialize' => false,
+            'serialize' => true,
         ],
 
         'database' => [

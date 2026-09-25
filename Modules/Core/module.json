@@ -26,6 +26,13 @@
     "emits": [],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "Dashboard",
+            "route": "core.dashboard",
+            "order": 0
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Core\\Providers\\CoreServiceProvider"

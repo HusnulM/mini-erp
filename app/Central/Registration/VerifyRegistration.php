@@ -9,6 +9,7 @@ use App\Central\Enums\TenantModuleStatus;
 use App\Central\Enums\TenantStatus;
 use App\Central\Models\Module;
 use App\Central\Models\Plan;
+use App\Central\Models\ProvisioningRun;
 use App\Central\Models\Subscription;
 use App\Central\Models\Tenant;
 use App\Central\Models\TenantModule;
@@ -31,7 +32,11 @@ class VerifyRegistration
         private readonly ProvisioningRunner $runner,
     ) {}
 
-    public function __invoke(Tenant $tenant): void
+    /**
+     * @param  bool  $dispatch  false = caller runs the provisioning run itself (dev command)
+     * @return ProvisioningRun|null the new run, or null when already verified
+     */
+    public function __invoke(Tenant $tenant, bool $dispatch = true): ?ProvisioningRun
     {
         $run = DB::connection('central')->transaction(function () use ($tenant) {
             $tenant = Tenant::query()->lockForUpdate()->findOrFail($tenant->getKey());
@@ -56,9 +61,11 @@ class VerifyRegistration
             return $this->runner->createRun($tenant);
         });
 
-        if ($run) {
+        if ($run && $dispatch) {
             $this->runner->dispatch($run);
         }
+
+        return $run;
     }
 
     private function createTrial(Tenant $tenant, Plan $plan, BillingCycle $cycle): Subscription

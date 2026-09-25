@@ -2,9 +2,11 @@
 
 namespace App\Central\Http\Controllers\Admin;
 
+use App\Central\Entitlement\SubscriptionEntitlement;
 use App\Central\Enums\TenantStatus;
 use App\Central\Models\Tenant;
 use App\Http\Controllers\Controller;
+use App\Support\Modules\ModuleRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -40,7 +42,7 @@ class TenantController extends Controller
         ]);
     }
 
-    public function show(Tenant $tenant): View
+    public function show(Tenant $tenant, ModuleRegistry $registry, SubscriptionEntitlement $entitlement): View
     {
         $tenant->load([
             'domains',
@@ -49,6 +51,11 @@ class TenantController extends Controller
             'provisioningRuns' => fn ($q) => $q->latest('id')->with('steps'),
         ]);
 
-        return view('central.admin.tenants.show', ['tenant' => $tenant]);
+        return view('central.admin.tenants.show', [
+            'tenant' => $tenant,
+            'catalog' => $registry->all(),
+            'rows' => $tenant->tenantModules->keyBy('module.code'),
+            'entitlement' => $entitlement->forTenant($tenant)->snapshot(),
+        ]);
     }
 }

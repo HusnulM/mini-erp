@@ -1,11 +1,14 @@
 <?php
 
 use App\Support\CentralRoutes;
+use App\Tenancy\Middleware\EnsureModuleIsActive;
 use App\Tenancy\Middleware\EnsureTenantIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -17,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Applied to every module's routes/tenant.php (together with 'web').
+        $middleware->alias([
+            'module' => EnsureModuleIsActive::class,
+            'permission' => PermissionMiddleware::class,
+            'role' => RoleMiddleware::class,
+        ]);
+
         $middleware->group('tenant', [
             InitializeTenancyByDomain::class,
             PreventAccessFromCentralDomains::class,

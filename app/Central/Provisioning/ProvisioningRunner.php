@@ -23,7 +23,10 @@ use LogicException;
 use Throwable;
 
 /**
- * Runs a `create` provisioning run step by step (TDD §7 "Langkah provisioning").
+ * Runs provisioning runs step by step (TDD §7 "Langkah provisioning"):
+ *  - `create`: the fixed STEPS below, for a new tenant;
+ *  - `install_module`: one "install:{code}" step per module, for modules
+ *    activated after provisioning (ModuleManager).
  *
  * Every step is idempotent and logged in provisioning_steps. A failing step
  * is retried up to erp.provisioning.max_attempts times with the configured
@@ -50,16 +53,36 @@ class ProvisioningRunner
         private readonly TenantAdminCreator $admin,
     ) {}
 
+    public const INSTALL_PREFIX = 'install:';
+
     public function createRun(Tenant $tenant): ProvisioningRun
     {
-        return DB::connection('central')->transaction(function () use ($tenant) {
+        return $this->newRun($tenant, ProvisioningRunType::Create, self::STEPS);
+    }
+
+    /** @param  list<string>  $modules  in install order */
+    public function createInstallRun(Tenant $tenant, array $modules): ProvisioningRun
+    {
+        return $this->newRun(
+            $tenant,
+            ProvisioningRunType::InstallModule,
+            array_map(fn (string $code) => self::INSTALL_PREFIX.$code, $modules),
+            ['modules' => $modules],
+        );
+    }
+
+    /** @param  list<string>  $steps */
+    private function newRun(Tenant $tenant, ProvisioningRunType $type, array $steps, ?array $context = null): ProvisioningRun
+    {
+        return DB::connection('central')->transaction(function () use ($tenant, $type, $steps, $context) {
             $run = ProvisioningRun::create([
                 'tenant_id' => $tenant->id,
-                'type' => ProvisioningRunType::Create,
+                'type' => $type,
                 'status' => ProvisioningStatus::Pending,
+                'context' => $context,
             ]);
 
-            foreach (self::STEPS as $i => $step) {
+            foreach ($steps as $i => $step) {
                 $run->steps()->create(['step' => $step, 'seq' => $i + 1, 'status' => ProvisioningStatus::Pending]);
             }
 
@@ -128,7 +151,10 @@ class ProvisioningRunner
             ]);
 
             $run->update(['status' => ProvisioningStatus::Pending, 'error' => null, 'finished_at' => null]);
-            $run->tenant->update(['status' => TenantStatus::Provisioning]);
+
+            if ($run->type === ProvisioningRunType::Create) {
+                $run->tenant->update(['status' => TenantStatus::Provisioning]);
+            }
         });
 
         $this->dispatch($run);
@@ -159,7 +185,7 @@ class ProvisioningRunner
         $tenant = $run->tenant;
         $run->update(['status' => ProvisioningStatus::Running, 'started_at' => $run->started_at ?? now()]);
 
-        if ($tenant->status !== TenantStatus::Provisioning) {
+        if ($run->type === ProvisioningRunType::Create && $tenant->status !== TenantStatus::Provisioning) {
             $tenant->update(['status' => TenantStatus::Provisioning]);
         }
 
@@ -211,6 +237,10 @@ class ProvisioningRunner
     /** @return string|null short result shown in the operator panel */
     private function perform(string $step, Tenant $tenant): ?string
     {
+        if (str_starts_with($step, self::INSTALL_PREFIX)) {
+            return $this->modules->installModule($tenant, substr($step, strlen(self::INSTALL_PREFIX)));
+        }
+
         switch ($step) {
             case 'reserve_names':
                 $this->database->reserveNames($tenant);
@@ -270,7 +300,12 @@ class ProvisioningRunner
             'error' => $step ? "{$step}: {$error}" : $error,
             'finished_at' => now(),
         ]);
-        $run->tenant->update(['status' => TenantStatus::Failed]);
+
+        // A failed module install leaves a live tenant usable; only a failed
+        // `create` run means the tenant has no working system.
+        if ($run->type === ProvisioningRunType::Create) {
+            $run->tenant->update(['status' => TenantStatus::Failed]);
+        }
 
         $operators = CentralUser::query()
             ->where('is_active', true)

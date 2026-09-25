@@ -4,11 +4,15 @@ namespace Tests\Feature;
 
 use App\Central\Enums\CentralUserRole;
 use App\Central\Enums\ProvisioningStatus;
+use App\Central\Enums\TenantModuleStatus;
 use App\Central\Enums\TenantStatus;
 use App\Central\Jobs\ProvisionTenant;
 use App\Central\Models\CentralUser;
+use App\Central\Models\Module;
 use App\Central\Models\ProvisioningRun;
+use App\Central\Models\SubscriptionAddon;
 use App\Central\Models\Tenant;
+use App\Central\Models\TenantModule;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
@@ -238,5 +242,76 @@ class OperatorPanelTest extends TestCase
         $this->actingAs(new User(['name' => 'x', 'email' => 'x@x.test']), 'web');
 
         $this->get('http://erp.localhost/admin')->assertRedirect('http://erp.localhost/admin/login');
+    }
+
+    private function moduleUrl(Tenant $tenant, string $module, string $action): string
+    {
+        return "http://erp.localhost/admin/tenants/{$tenant->id}/modules/{$module}/{$action}";
+    }
+
+    /** A verified STARTER tenant whose plan modules are active (no database needed here). */
+    private function liveTenant(): Tenant
+    {
+        $tenant = $this->register();
+        $this->verify($tenant);
+        TenantModule::where('tenant_id', $tenant->id)->update(['status' => TenantModuleStatus::Active]);
+        $tenant->update(['status' => TenantStatus::Trial]);
+        Queue::fake(); // forget the ProvisionTenant job pushed by the verification
+
+        return $tenant->fresh();
+    }
+
+    #[Test]
+    public function the_detail_page_lists_every_module_with_its_state(): void
+    {
+        $tenant = $this->liveTenant();
+        $this->actingAs($this->operator(CentralUserRole::Owner), 'central');
+
+        $this->get("http://erp.localhost/admin/tenants/{$tenant->id}")
+            ->assertOk()
+            ->assertSee('<code>procurement</code>', false)
+            ->assertSee('tidak ter-entitle (add-on)')
+            ->assertSee('Tambah add-on')
+            ->assertSee('Nonaktifkan');
+    }
+
+    #[Test]
+    public function billing_adds_addons_and_support_activates_modules(): void
+    {
+        $tenant = $this->liveTenant();
+        $support = $this->operator(CentralUserRole::Support);
+
+        $this->actingAs($support, 'central');
+        $this->post($this->moduleUrl($tenant, 'procurement', 'addon'))->assertForbidden();
+
+        $this->actingAs($this->operator(CentralUserRole::Billing), 'central');
+        $this->post($this->moduleUrl($tenant, 'procurement', 'addon'))
+            ->assertSessionHas('status', 'Add-on ditambahkan: workflow, procurement. Modul procurement sedang diinstal.');
+        $this->post($this->moduleUrl($tenant, 'pos', 'deactivate'))->assertForbidden();
+
+        $this->assertSame(2, SubscriptionAddon::count());
+        Queue::assertPushedOn('provisioning', ProvisionTenant::class);
+        Queue::assertPushed(ProvisionTenant::class, 1);
+        $this->assertSame(TenantModuleStatus::Installing, TenantModule::where('tenant_id', $tenant->id)
+            ->where('module_id', Module::where('code', 'procurement')->value('id'))->sole()->status);
+
+        $this->actingAs($support, 'central');
+        $this->post($this->moduleUrl($tenant, 'pos', 'deactivate'))->assertSessionHas('status');
+        $this->post($this->moduleUrl($tenant, 'pos', 'activate'))->assertSessionHas('status', 'Modul pos sedang diinstal.');
+    }
+
+    #[Test]
+    public function refused_module_changes_show_the_reason(): void
+    {
+        $tenant = $this->liveTenant();
+        $this->actingAs($this->operator(), 'central');
+
+        $this->post($this->moduleUrl($tenant, 'finance', 'activate'))
+            ->assertSessionHasErrors(['module' => 'Modul Finance & Accounting tidak termasuk paket atau add-on langganan ini.']);
+        $this->post($this->moduleUrl($tenant, 'master', 'deactivate'))
+            ->assertSessionHasErrors(['module' => 'Modul inti Master Data tidak bisa dinonaktifkan.']);
+        $this->post($this->moduleUrl($tenant, 'nope', 'activate'))
+            ->assertSessionHasErrors(['module' => 'Modul [nope] tidak dikenal.']);
+        Queue::assertNothingPushed();
     }
 }

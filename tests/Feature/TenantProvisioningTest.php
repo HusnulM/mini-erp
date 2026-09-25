@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Central\Enums\TenantStatus;
 use App\Central\Models\Tenant;
 use App\Central\Provisioning\TenantDatabaseProvisioner;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -28,6 +29,7 @@ class TenantProvisioningTest extends TestCase
     {
         parent::setUp();
         $this->artisan('modules:sync');
+        $this->seed(PlanSeeder::class);
     }
 
     protected function tearDown(): void

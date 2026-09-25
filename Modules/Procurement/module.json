@@ -37,6 +37,14 @@
         "DocumentApproved"
     ],
     "installer": null,
+    "menu": [
+        {
+            "label": "Procurement",
+            "route": "procurement.index",
+            "permission": "procurement.purchase_order.view",
+            "order": 30
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Procurement\\Providers\\ProcurementServiceProvider"

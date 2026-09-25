@@ -2,6 +2,7 @@
 
 namespace App\Central\Models;
 
+use App\Central\Entitlement\FlushesEntitlementCache;
 use App\Central\Enums\BillingCycle;
 use App\Central\Enums\SubscriptionStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Subscription extends CentralModel
 {
+    use FlushesEntitlementCache;
+
     protected function casts(): array
     {
         return [

@@ -30,6 +30,14 @@
     "emits": [],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "Laporan",
+            "route": "reporting.index",
+            "permission": "reporting.dashboard.read",
+            "order": 70
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Reporting\\Providers\\ReportingServiceProvider"

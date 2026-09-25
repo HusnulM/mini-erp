@@ -34,6 +34,14 @@
     ],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "POS",
+            "route": "pos.index",
+            "permission": "pos.transaction.view",
+            "order": 40
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Pos\\Providers\\PosServiceProvider"

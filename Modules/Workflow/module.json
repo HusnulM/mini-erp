@@ -27,6 +27,14 @@
     ],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "Approval",
+            "route": "workflow.index",
+            "permission": "workflow.workflow.view",
+            "order": 60
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Workflow\\Providers\\WorkflowServiceProvider"
