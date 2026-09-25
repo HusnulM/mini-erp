@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Core\Http\Controllers\LoginController;
 
 /*
 | Core tenant routes. Loaded by CoreServiceProvider inside the
@@ -8,3 +9,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', fn () => view('core::dashboard', ['tenant' => tenant()]))->name('dashboard');
+
+Route::middleware('guest')->group(function () {
+    Route::get('login', [LoginController::class, 'create'])->name('login');
+    Route::post('login', [LoginController::class, 'store'])->name('login.store');
+});
+
+Route::post('logout', [LoginController::class, 'destroy'])->middleware('auth')->name('logout');

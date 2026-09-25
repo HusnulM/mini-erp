@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // Cloudflare Turnstile for the registration form (TDD §7). The default
+    // keys are Cloudflare's public test keys that always pass: replace them
+    // in production.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY', '1x00000000000000000000AA'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY', '1x0000000000000000000000000000000AA'),
+        'verify_url' => 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+    ],
+
 ];

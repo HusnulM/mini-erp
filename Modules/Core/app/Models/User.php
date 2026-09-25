@@ -5,6 +5,7 @@ namespace Modules\Core\Models;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * Tenant user. No $connection: it uses the default connection, which
@@ -12,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
  */
 class User extends Authenticatable
 {
-    use Notifiable, SoftDeletes;
+    use HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = ['name', 'username', 'email', 'password', 'status', 'default_company_id'];
 

@@ -58,4 +58,28 @@ return [
     'core_modules' => ['core', 'master'],
 
     'modules_path' => base_path('Modules'),
+
+    /*
+    | Self-service registration (TDD §7).
+    */
+    'registration' => [
+        // Unverified registrations are deleted after this many days.
+        'unverified_ttl_days' => 7,
+        // Minimum admin password length; passwords are also checked against
+        // the Have I Been Pwned range API (k-anonymity, only a hash prefix is sent).
+        'password_min' => 10,
+        'billing_cycles' => ['monthly', 'yearly'],
+    ],
+
+    /*
+    | ProvisionTenant job (TDD §7 "Penanganan gagal").
+    */
+    'provisioning' => [
+        'queue' => 'provisioning',
+        // Attempts per step, and the delay (seconds) before attempt 2, 3, ...
+        'max_attempts' => 3,
+        'backoff' => [10, 60, 300],
+        // Role given to the first tenant user.
+        'admin_role' => 'SUPER ADMIN',
+    ],
 ];

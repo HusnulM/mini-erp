@@ -7,6 +7,7 @@ namespace App\Providers;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\PermissionRegistrar;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Listeners;
@@ -62,9 +63,13 @@ class TenancyServiceProvider extends ServiceProvider
             ],
 
             Events\BootstrappingTenancy::class => [],
-            Events\TenancyBootstrapped::class => [],
+            Events\TenancyBootstrapped::class => [
+                fn () => self::scopePermissionCache(),
+            ],
             Events\RevertingToCentralContext::class => [],
-            Events\RevertedToCentralContext::class => [],
+            Events\RevertedToCentralContext::class => [
+                fn () => self::scopePermissionCache(),
+            ],
 
             // Resource syncing
             Events\SyncedResourceSaved::class => [
@@ -74,6 +79,20 @@ class TenancyServiceProvider extends ServiceProvider
             // Fired only when a synced resource is changed in a different DB than the origin DB (to avoid infinite loops)
             Events\SyncedResourceChangedInForeignDatabase::class => [],
         ];
+    }
+
+    /**
+     * spatie/laravel-permission keeps roles/permissions in memory and in the
+     * cache under one key. Give every tenant its own key and drop what was
+     * loaded for the previous tenant, so a worker that handles several
+     * tenants (provisioning, queues) never mixes their roles.
+     */
+    public static function scopePermissionCache(): void
+    {
+        $base = 'spatie.permission.cache';
+        config(['permission.cache.key' => tenancy()->initialized ? $base.'.tenant.'.tenant()->getTenantKey() : $base]);
+
+        app(PermissionRegistrar::class)->initializeCache();
     }
 
     public function register()
