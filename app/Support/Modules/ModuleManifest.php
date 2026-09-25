@@ -19,6 +19,7 @@ final readonly class ModuleManifest
      * @param  list<string>  $documentTypes
      * @param  list<string>  $emits
      * @param  list<string>  $listens
+     * @param  list<array{label: string, route: string, permission?: ?string, order?: int}>  $menu
      */
     public function __construct(
         public string $code,
@@ -38,6 +39,7 @@ final readonly class ModuleManifest
         public array $emits = [],
         public array $listens = [],
         public ?string $installer = null,
+        public array $menu = [],
         public array $raw = [],
     ) {}
 
@@ -88,6 +90,7 @@ final readonly class ModuleManifest
             emits: array_values($raw['emits'] ?? []),
             listens: array_values($raw['listens'] ?? []),
             installer: $raw['installer'] ?? null,
+            menu: self::menu($raw['menu'] ?? [], $file),
             raw: $raw,
         );
     }
@@ -96,6 +99,51 @@ final readonly class ModuleManifest
     public function tenantMigrationPath(): string
     {
         return $this->path.'/database/migrations/tenant';
+    }
+
+    /**
+     * Permission names with "entity.*" expanded to the standard actions,
+     * e.g. core.company.* → core.company.view, core.company.create, ...
+     *
+     * @param  list<string>  $actions
+     * @return list<string>
+     */
+    public function expandedPermissions(array $actions): array
+    {
+        $names = [];
+
+        foreach ($this->permissions as $permission) {
+            if (str_ends_with($permission, '.*')) {
+                foreach ($actions as $action) {
+                    $names[] = substr($permission, 0, -1).$action;
+                }
+            } else {
+                $names[] = $permission;
+            }
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    /** @return list<array{label: string, route: string, permission: ?string, order: int}> */
+    private static function menu(mixed $value, string $file): array
+    {
+        if (! is_array($value)) {
+            throw new InvalidArgumentException("[{$file}] \"menu\" must be a list.");
+        }
+
+        return array_map(function ($item) use ($file) {
+            if (! is_array($item) || ! is_string($item['label'] ?? null) || ! is_string($item['route'] ?? null)) {
+                throw new InvalidArgumentException("[{$file}] every \"menu\" item needs a \"label\" and a \"route\".");
+            }
+
+            return [
+                'label' => $item['label'],
+                'route' => $item['route'],
+                'permission' => $item['permission'] ?? null,
+                'order' => (int) ($item['order'] ?? 100),
+            ];
+        }, array_values($value));
     }
 
     /** @return list<string> */

@@ -28,6 +28,14 @@
     "emits": [],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "Master Data",
+            "route": "master.index",
+            "permission": "master.product.view",
+            "order": 10
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\MasterData\\Providers\\MasterDataServiceProvider"

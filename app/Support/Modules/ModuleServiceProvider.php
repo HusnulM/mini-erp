@@ -13,8 +13,10 @@ use Illuminate\Support\ServiceProvider;
  * by `php artisan migrate` on the central database.
  *
  * All modules are loaded in code for every request; whether a tenant may use
- * a module is decided per request by ModuleEntitlement (Sprint 3 adds the
- * `module:{code}` middleware to the route group below).
+ * a module is decided per request by ModuleEntitlement, through the
+ * `module:{code}` middleware on the route group below. A route that must work
+ * whatever the module state (e.g. login) opts out with
+ * ->withoutMiddleware('module:{code}').
  */
 abstract class ModuleServiceProvider extends ServiceProvider
 {
@@ -45,7 +47,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
             return;
         }
 
-        Route::middleware(['web', 'tenant'])
+        Route::middleware(['web', 'tenant', "module:{$this->code}"])
             ->name($this->code.'.')
             ->group($routes);
     }

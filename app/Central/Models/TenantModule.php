@@ -2,12 +2,15 @@
 
 namespace App\Central\Models;
 
+use App\Central\Entitlement\FlushesEntitlementCache;
 use App\Central\Enums\ModuleSource;
 use App\Central\Enums\TenantModuleStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TenantModule extends CentralModel
 {
+    use FlushesEntitlementCache;
+
     protected function casts(): array
     {
         return [

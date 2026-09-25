@@ -127,4 +127,42 @@ class ModuleRegistryTest extends TestCase
         );
         $this->assertSame(['core', 'master'], array_keys($registry->core()));
     }
+
+    #[Test]
+    public function wildcard_permissions_expand_to_the_standard_actions(): void
+    {
+        $this->module('Procurement', 'procurement', [
+            'permissions' => ['procurement.purchase_order.*', 'procurement.purchase_order.approve', 'procurement.settings.manage'],
+        ]);
+
+        $this->assertSame([
+            'procurement.purchase_order.view',
+            'procurement.purchase_order.create',
+            'procurement.purchase_order.update',
+            'procurement.purchase_order.delete',
+            'procurement.purchase_order.approve',
+            'procurement.settings.manage',
+        ], (new ModuleRegistry($this->dir))->get('procurement')->expandedPermissions(['view', 'create', 'update', 'delete']));
+    }
+
+    #[Test]
+    public function menu_items_are_read_with_defaults(): void
+    {
+        $this->module('Pos', 'pos', ['menu' => [['label' => 'POS', 'route' => 'pos.index']]]);
+
+        $this->assertSame(
+            [['label' => 'POS', 'route' => 'pos.index', 'permission' => null, 'order' => 100]],
+            (new ModuleRegistry($this->dir))->get('pos')->menu
+        );
+    }
+
+    #[Test]
+    public function a_menu_item_without_a_route_is_rejected(): void
+    {
+        $this->module('Pos', 'pos', ['menu' => [['label' => 'POS']]]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('needs a "label" and a "route"');
+        (new ModuleRegistry($this->dir))->all();
+    }
 }

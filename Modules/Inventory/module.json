@@ -34,6 +34,14 @@
     ],
     "listens": [],
     "installer": null,
+    "menu": [
+        {
+            "label": "Inventory",
+            "route": "inventory.index",
+            "permission": "inventory.stock.read",
+            "order": 20
+        }
+    ],
     "priority": 0,
     "providers": [
         "Modules\\Inventory\\Providers\\InventoryServiceProvider"

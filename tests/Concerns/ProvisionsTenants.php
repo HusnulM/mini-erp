@@ -2,8 +2,12 @@
 
 namespace Tests\Concerns;
 
+use App\Central\Enums\ModuleSource;
+use App\Central\Enums\TenantModuleStatus;
 use App\Central\Enums\TenantStatus;
+use App\Central\Models\Module;
 use App\Central\Models\Tenant;
+use App\Central\Models\TenantModule;
 use App\Central\Provisioning\TenantDatabaseProvisioner;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +35,14 @@ trait ProvisionsTenants
         $p->createDatabaseUser($tenant);
         $p->migrateCoreModules($tenant);
         $p->seed($tenant);
+
+        // Core modules only, no subscription: what a tenant without a plan gets.
+        foreach (Module::whereIn('code', config('erp.core_modules'))->get() as $module) {
+            TenantModule::create([
+                'tenant_id' => $tenant->id, 'module_id' => $module->id,
+                'status' => TenantModuleStatus::Active, 'source' => ModuleSource::Core,
+            ]);
+        }
 
         $tenant->update(['status' => $status]);
 

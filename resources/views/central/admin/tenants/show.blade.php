@@ -12,6 +12,9 @@
     @error('retry')
         <div class="alert alert-err" role="alert">{{ $message }}</div>
     @enderror
+    @error('module')
+        <div class="alert alert-err" role="alert">{{ $message }}</div>
+    @enderror
 
     <div class="row">
         <div class="card">
@@ -40,13 +43,51 @@
                 <p class="hint">Belum ada (dibuat saat email diverifikasi).</p>
             @endif
 
-            <h2>Modul</h2>
-            @forelse ($tenant->tenantModules->sortBy('module.sort') as $tm)
-                <span class="badge b-{{ $tm->status->value }}" title="{{ $tm->source->value }}{{ $tm->last_error ? ' · '.$tm->last_error : '' }}">{{ $tm->module->code }}: {{ $tm->status->value }}</span>
-            @empty
-                <p class="hint">Belum ada.</p>
-            @endforelse
         </div>
+    </div>
+
+    <h2>Modul</h2>
+    <div class="card table-wrap">
+        <table>
+            <thead><tr><th>Modul</th><th>Butuh</th><th>Hak</th><th>Status</th><th>Akses</th><th>Versi</th><th></th></tr></thead>
+            <tbody>
+            @foreach ($catalog as $code => $manifest)
+                @php($row = $rows->get($code))
+                @php($state = $entitlement->state($code))
+                <tr>
+                    <td><strong>{{ $manifest->name }}</strong> <code>{{ $code }}</code></td>
+                    <td>{{ implode(', ', $manifest->requires) ?: '—' }}</td>
+                    <td>
+                        @if ($entitlement->isEntitled($code))
+                            {{ $row?->source->value ?? ($manifest->isCore ? 'core' : 'plan/add-on') }}
+                        @else
+                            <span class="hint">tidak ter-entitle{{ $manifest->isAddon ? ' (add-on)' : '' }}</span>
+                        @endif
+                    </td>
+                    <td>@if ($row)<span class="badge b-{{ $row->status->value }}" title="{{ $row->last_error }}">{{ $row->status->value }}</span>@else — @endif</td>
+                    <td><span class="badge b-{{ $state->value === 'readonly' ? 'past_due' : $state->value }}">{{ $state->value }}</span></td>
+                    <td>{{ $row?->installed_version ?? '—' }}</td>
+                    <td>
+                        @if ($tenant->status->canAccess())
+                            @if ($entitlement->isEntitled($code) && $state->value !== 'active' && $row?->status->value !== 'installing')
+                                @can('manage-modules')
+                                    <form method="POST" action="{{ central_route('admin.modules.activate', [$tenant, $code]) }}">@csrf <button class="btn btn-sm" type="submit">Aktifkan</button></form>
+                                @endcan
+                            @elseif (! $entitlement->isEntitled($code) && $manifest->isAddon)
+                                @can('manage-addons')
+                                    <form method="POST" action="{{ central_route('admin.modules.addon', [$tenant, $code]) }}">@csrf <button class="btn btn-sm" type="submit">Tambah add-on</button></form>
+                                @endcan
+                            @elseif (! $manifest->isCore && $row?->status->value === 'active')
+                                @can('manage-modules')
+                                    <form method="POST" action="{{ central_route('admin.modules.deactivate', [$tenant, $code]) }}">@csrf <button class="btn-link" type="submit">Nonaktifkan</button></form>
+                                @endcan
+                            @endif
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
     </div>
 
     <h2>Provisioning</h2>
