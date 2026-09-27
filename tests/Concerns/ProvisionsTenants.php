@@ -10,6 +10,7 @@ use App\Central\Models\Tenant;
 use App\Central\Models\TenantModule;
 use App\Central\Provisioning\TenantDatabaseProvisioner;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 /**
  * Creates real tenant databases on the test MySQL server and drops every
@@ -59,6 +60,8 @@ trait ProvisionsTenants
 
         foreach ($db->select("SELECT SCHEMA_NAME AS n FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE 'erp\\_test\\_t\\_%'") as $row) {
             $db->statement("DROP DATABASE IF EXISTS `{$row->n}`");
+            // Tenant storage (storage/tenant{id}), e.g. files from Storage::fake() in tenant context.
+            File::deleteDirectory(base_path('storage/tenant'.substr($row->n, strlen('erp_test_t_'))));
         }
 
         foreach ($db->select("SELECT user, host FROM mysql.user WHERE user LIKE 'ut\\_%'") as $row) {

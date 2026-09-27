@@ -31,6 +31,39 @@
             "label": "Dashboard",
             "route": "core.dashboard",
             "order": 0
+        },
+        {
+            "label": "Organisasi",
+            "route": "core.organization.index",
+            "permission": "core.company.view",
+            "order": 90
+        },
+        {
+            "label": "Pengguna",
+            "route": "core.users.index",
+            "permission": "core.user.view",
+            "order": 91
+        },
+        {
+            "label": "Role",
+            "route": "core.roles.index",
+            "permission": "core.role.view",
+            "order": 92
+        },
+        {
+            "label": "Pengaturan",
+            "route": "core.settings.edit",
+            "permission": "core.settings.manage",
+            "order": 93,
+            "params": {
+                "module": "core"
+            }
+        },
+        {
+            "label": "Audit log",
+            "route": "core.audit-logs.index",
+            "permission": "core.audit_log.read",
+            "order": 94
         }
     ],
     "priority": 0,

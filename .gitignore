@@ -26,5 +26,8 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Per-tenant storage (FilesystemTenancyBootstrapper suffixes storage_path)
+/storage/tenant*/
+
 # Redis snapshot when redis-server runs from the project root
 /dump.rdb

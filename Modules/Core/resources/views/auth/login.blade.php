@@ -18,6 +18,7 @@
 <main>
     <div class="card">
         <h1>{{ $tenant->name }}</h1>
+        @if (session('status'))<p style="color:#03543f">{{ session('status') }}</p>@endif
         <form method="POST" action="{{ route('core.login.store', absolute: false) }}">
             @csrf
             <label for="login">Email atau username</label>
@@ -28,6 +29,7 @@
             <input id="password" type="password" name="password" required>
 
             <button type="submit">Masuk</button>
+            <p><a href="{{ route('core.password.request', absolute: false) }}">Lupa password?</a></p>
         </form>
     </div>
 </main>

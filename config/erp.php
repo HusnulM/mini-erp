@@ -63,6 +63,12 @@ return [
     */
     'permission_actions' => ['view', 'create', 'update', 'delete'],
 
+    /*
+    | Default PPN rate (%) offered by the setup wizard. 11 or 12 depending on
+    | the regulation at go-live (TDD open question).
+    */
+    'default_vat_rate' => (float) env('DEFAULT_VAT_RATE', 11),
+
     'modules_path' => base_path('Modules'),
 
     /*

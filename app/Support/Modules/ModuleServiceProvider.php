@@ -14,9 +14,10 @@ use Illuminate\Support\ServiceProvider;
  *
  * All modules are loaded in code for every request; whether a tenant may use
  * a module is decided per request by ModuleEntitlement, through the
- * `module:{code}` middleware on the route group below. A route that must work
- * whatever the module state (e.g. login) opts out with
- * ->withoutMiddleware('module:{code}').
+ * `module:{code}` middleware on the route group below. `setup` sends users
+ * to the setup wizard until it is done (TDD §9). A route that must work
+ * regardless (login, the wizard itself) opts out with
+ * ->withoutMiddleware(['setup', 'module:{code}']).
  */
 abstract class ModuleServiceProvider extends ServiceProvider
 {
@@ -47,7 +48,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
             return;
         }
 
-        Route::middleware(['web', 'tenant', "module:{$this->code}"])
+        Route::middleware(['web', 'tenant', 'setup', "module:{$this->code}"])
             ->name($this->code.'.')
             ->group($routes);
     }

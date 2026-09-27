@@ -151,7 +151,7 @@ class ModuleRegistryTest extends TestCase
         $this->module('Pos', 'pos', ['menu' => [['label' => 'POS', 'route' => 'pos.index']]]);
 
         $this->assertSame(
-            [['label' => 'POS', 'route' => 'pos.index', 'permission' => null, 'order' => 100]],
+            [['label' => 'POS', 'route' => 'pos.index', 'params' => [], 'permission' => null, 'order' => 100]],
             (new ModuleRegistry($this->dir))->get('pos')->menu
         );
     }

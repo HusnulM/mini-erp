@@ -40,7 +40,7 @@ class MenuBuilder
 
                 $items[] = [
                     'label' => $item['label'],
-                    'url' => route($item['route'], absolute: false),
+                    'url' => route($item['route'], $item['params'], false),
                     'module' => $code,
                     'readonly' => $state === ModuleState::ReadOnly,
                     'order' => $item['order'],

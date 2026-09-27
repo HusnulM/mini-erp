@@ -36,13 +36,19 @@
     "listens": [
         "DocumentApproved"
     ],
-    "installer": null,
+    "installer": "Modules\\Procurement\\Setup\\ProcurementInstaller",
     "menu": [
         {
             "label": "Procurement",
             "route": "procurement.index",
             "permission": "procurement.purchase_order.view",
             "order": 30
+        },
+        {
+            "label": "Konfigurasi Procurement",
+            "route": "procurement.setup",
+            "permission": "procurement.settings.manage",
+            "order": 31
         }
     ],
     "priority": 0,

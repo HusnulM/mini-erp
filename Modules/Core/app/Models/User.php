@@ -2,9 +2,12 @@
 
 namespace Modules\Core\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Modules\Core\Concerns\Auditable;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -13,7 +16,10 @@ use Spatie\Permission\Traits\HasRoles;
  */
 class User extends Authenticatable
 {
-    use HasRoles, Notifiable, SoftDeletes;
+    use Auditable, HasRoles, Notifiable, SoftDeletes;
+
+    /** Logging in is not a change to the user record. */
+    protected array $auditExclude = ['last_login_at'];
 
     protected $fillable = ['name', 'username', 'email', 'password', 'status', 'default_company_id'];
 
@@ -27,5 +33,15 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
         ];
+    }
+
+    public function scopes(): HasMany
+    {
+        return $this->hasMany(UserScope::class);
+    }
+
+    public function defaultCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'default_company_id');
     }
 }

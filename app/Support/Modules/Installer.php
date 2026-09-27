@@ -12,9 +12,10 @@ interface Installer
     public function seed(): void;
 
     /**
-     * Setup-wizard steps this module adds (TDD §9, used in Sprint 4).
+     * Optional setup-wizard steps of this module (TDD §9 "8+ Konfigurasi
+     * modul"); `route` is a tenant route name that renders the step.
      *
-     * @return list<array{key: string, label: string}>
+     * @return list<array{key: string, label: string, route: string}>
      */
     public function wizardSteps(): array;
 }
