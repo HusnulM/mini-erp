@@ -12,9 +12,10 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * Tenant user login (guard "web", tenant database). Minimal for Sprint 2 so
- * the "system ready" email leads somewhere; Sprint 4 adds the account lock,
- * 2FA and the setup-wizard redirect (TDD §9, §11).
+ * Tenant user login (guard "web", tenant database). TDD §11: 5 attempts per
+ * minute per IP + login, and the login is locked for 15 minutes after 10
+ * failures. After login, the `setup` middleware sends admins to the setup
+ * wizard until it is done.
  */
 class LoginController extends Controller
 {
@@ -32,22 +33,27 @@ class LoginController extends Controller
 
         $login = Str::lower($data['login']);
         $key = 'tenant-login:'.tenant()->getTenantKey().":{$login}|{$request->ip()}";
+        $lock = 'tenant-login-lock:'.tenant()->getTenantKey().":{$login}";
 
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages([
-                'login' => 'Terlalu banyak percobaan login. Coba lagi dalam '.RateLimiter::availableIn($key).' detik.',
-            ]);
+        foreach ([$key => 5, $lock => 10] as $limiterKey => $max) {
+            if (RateLimiter::tooManyAttempts($limiterKey, $max)) {
+                throw ValidationException::withMessages([
+                    'login' => 'Terlalu banyak percobaan login. Coba lagi dalam '.ceil(RateLimiter::availableIn($limiterKey) / 60).' menit.',
+                ]);
+            }
         }
 
         $field = str_contains($login, '@') ? 'email' : 'username';
 
         if (! Auth::guard('web')->attempt([$field => $login, 'password' => $data['password'], 'status' => 'active'], $request->boolean('remember'))) {
             RateLimiter::hit($key, 60);
+            RateLimiter::hit($lock, 15 * 60);
 
             throw ValidationException::withMessages(['login' => 'Email/username atau password salah.']);
         }
 
         RateLimiter::clear($key);
+        RateLimiter::clear($lock);
         $request->session()->regenerate();
         Auth::guard('web')->user()->forceFill(['last_login_at' => now()])->save();
 

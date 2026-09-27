@@ -2,7 +2,7 @@
 
 Laravel 13 + MySQL 8, modular, **database-per-tenant**. Rancangan lengkap ada di *TDD Phase 0 — SaaS Foundation Mini ERP*.
 
-## Status: Sprint 3 selesai
+## Status: Sprint 4 selesai
 
 | Area | Isi |
 | --- | --- |
@@ -17,10 +17,15 @@ Laravel 13 + MySQL 8, modular, **database-per-tenant**. Rancangan lengkap ada di
 | Panel operator (S2) | `/admin` di domain central, guard `central`: login, daftar tenant + status, detail provisioning per langkah, tombol "Retry from step" |
 | Entitlement (S3) | `SubscriptionEntitlement` (driver SaaS `ModuleEntitlement`): state active/readonly/inactive per modul dari `tenant_modules` + subscription, cache 5 menit, di-flush otomatis saat data langganan berubah |
 | Modul (S3) | Middleware `module:{code}` di semua route modul, `ModuleManager` (aktivasi + dependency, nonaktifkan, add-on), install lewat run `install_module` yang berlog dan bisa di-retry, permission dan menu dinamis dari `module.json` |
+| Tenant core (S4) | Tabel TDD §5: company, branch, store, warehouse (+ lokasi), `user_scopes`, settings, lookups, `document_sequences`, currency/kurs, kode pajak, tahun & periode fiskal, `audit_logs`, `setup_progress`, `module_events` |
+| Service (S4) | Penomoran dokumen (`SELECT … FOR UPDATE`), settings company → tenant → default, lookups, audit log otomatis, data scope, batas plan |
+| Setup wizard (S4) | Perusahaan, tahun fiskal, organisasi, pajak, COA (jika Finance aktif), penomoran, user; langkah modul dari `Installer::wizardSteps()`; middleware `setup` |
+| User & akses (S4) | Undang user via email, role + permission, cakupan data, lupa/reset password, lock login |
+| Procurement (S4) | Purchase type, purchasing group, settings per company (acceptance criteria TDD §12) |
 | CI | GitHub Actions: Pint + test di MySQL 8 dan Redis 7 |
-| Test | 110 test (unit + feature di MySQL asli), termasuk isolasi antar tenant, provisioning yang digagalkan lalu di-retry, dan acceptance criteria modul (403, menu, permission, add-on, readonly) |
+| Test | 148 test (unit + feature di MySQL asli), termasuk isolasi antar tenant, provisioning yang digagalkan lalu di-retry, acceptance criteria modul, wizard, dan 100 penomoran paralel |
 
-Belum dikerjakan (sesuai rencana sprint): tabel core tenant lengkap + setup wizard (S4), billing (S5).
+Belum dikerjakan (sesuai rencana sprint): billing (S5).
 
 ## Menjalankan dengan Docker
 
@@ -101,6 +106,29 @@ ProvisionTenant: reserve_names → create_database → create_db_user → migrat
 - **Menu**: key `menu` di `module.json` (`label`, `route`, `permission`, `order`). `MenuBuilder` hanya menampilkan item dari modul yang bisa dibaca dan yang user punya permission-nya.
 - **Panel operator**: tabel modul per tenant dengan tombol Aktifkan / Nonaktifkan (owner, support) dan Tambah add-on (owner, billing). Tambah add-on juga menambahkan add-on dependency yang belum termasuk plan (mis. procurement → workflow); ini jalan pintas sampai billing di S5.
 
+## Tenant core & setup wizard (Sprint 4)
+
+Setelah login pertama, admin diarahkan ke `/setup` sampai langkah wajib selesai (`tenants.setup_completed_at`). Progres ada di `setup_progress`, jadi wizard bisa dilanjutkan setelah logout. User tanpa `core.settings.manage` melihat halaman "sistem belum siap".
+
+| # | Langkah | Wajib | Hasil |
+| --- | --- | --- | --- |
+| 1 | Perusahaan | ya | company (+ sequence dokumen & default modul), company default admin |
+| 2 | Tahun fiskal | ya | `fiscal_years` + 12 `fiscal_periods` dari bulan awal pilihan |
+| 3 | Struktur organisasi | ya (min. 1 store atau gudang) | branch, store (otomatis dapat gudang store), gudang |
+| 4 | Pajak | ya | setting `core.is_pkp`/`core.vat_rate`; PKP → kode pajak PPN-IN & PPN-OUT |
+| 5 | Chart of Accounts | jika Finance aktif | pilihan template (akun dibuat modul Finance) |
+| 6 | Penomoran | tidak | prefix/format/reset per dokumen |
+| 7 | User & role | tidak | undangan user |
+| 8+ | Modul | tidak | dari `Installer::wizardSteps()` (Procurement: purchase type, group, settings) |
+
+Urutan middleware tenant (TDD §3): tenancy → `EnsureTenantIsActive` → `auth` → `setup` → `module:` → `permission:`. Karena `auth` ada di daftar prioritas middleware Laravel, keempat middleware lain juga didaftarkan ke daftar itu di `bootstrap/app.php`. Tanpa itu, tenant yang di-suspend mendapat halaman login, bukan pemberitahuan.
+
+- **Penomoran**: `app(DocumentNumbers::class)->next($companyId, 'PO', $branchId)`. Sequence per company, bisa di-override per branch. Token `{PREFIX} {YYYY} {YY} {MM} {DD} {BRANCH} {SEQ:n}`, reset yearly/monthly/never. Panggil di dalam transaksi yang menyimpan dokumen supaya nomor ikut di-rollback. Sequence dibuat otomatis untuk `document_types` di `module.json` setiap modul terinstal.
+- **Settings**: definisi di `Modules/{Nama}/config/settings.php` (`type` bool/int/decimal/string/select, `default`, `label`, `rules`). Baca dengan `setting('procurement.gr_over_receipt_tolerance_pct', companyId: $id)`. Halaman Pengaturan (`/settings/{module}`) dibangun otomatis, dijaga permission `{module}.settings.manage`.
+- **Audit log**: model dengan trait `Auditable` (company, branch, store, gudang, settings, lookups, sequence, pajak, fiskal, user, konfigurasi procurement) mencatat create/update/delete/restore beserta user, IP, dan user agent. Password dan atribut hidden tidak pernah dicatat. Perubahan role/permission/scope dicatat sebagai event sendiri. `audit_logs` append-only.
+- **Data scope**: trait `ScopedByOrganization` + `user_scopes` (company/branch/store/warehouse/own). Tanpa baris scope user tidak melihat apa pun (deny by default); SUPER ADMIN serta job/console tidak dibatasi.
+- **Batas plan**: `Organization` service mengecek `ModuleEntitlement::limits()` saat membuat company, store, dan user.
+
 ## Struktur
 
 ```text
@@ -125,7 +153,11 @@ app/
 ├── Support/Modules/    ModuleManifest, ModuleRegistry, ModuleServiceProvider, MenuBuilder, Installer, modules:sync
 └── Support/CentralRoutes.php  nama route central per domain + helper central_route()
 Modules/
-├── Core/  MasterData/  Workflow/  Inventory/  Procurement/  Pos/  Finance/  Reporting/
+├── Core/               Models (org, user, settings, …), Services (DocumentNumbers, Settings, Organization,
+│                       FiscalCalendar, DataScope), Setup/SetupWizard, Concerns (Auditable, HasUserStamps,
+│                       ScopedByOrganization), config/settings.php
+├── Procurement/        konfigurasi (procurement_types, purchasing_groups), Setup/ProcurementInstaller
+├── MasterData/  Workflow/  Inventory/  Pos/  Finance/  Reporting/
 │   └── module.json, app/Providers, database/migrations/tenant, routes/tenant.php, config, lang, views
 routes/central.php      ← route central (didaftarkan per domain oleh routes/web.php)
 database/migrations/    ← HANYA central DB
@@ -165,3 +197,11 @@ docker/                 ← php, nginx, mysql init
 - Route modul non-core baru berisi halaman placeholder (dibangun di Phase 1). Dashboard masih publik seperti Sprint 1; menu tampil kalau user login. Redirect ke setup wizard dan `EnsureSetupCompleted` di S4.
 - Pengecualian POS dari TDD §8 (shift yang sedang terbuka boleh ditutup saat readonly) dan job terjadwal yang dilewati untuk modul inactive dibuat bersama modulnya di Phase 1.
 - Belum ada notifikasi ke admin tenant saat modul selesai diaktifkan.
+
+## Catatan desain Sprint 4
+
+- `settings.company_key` dan `document_sequences.branch_key` adalah **virtual** generated column (`IFNULL(x, 0)`) untuk unique key yang juga berlaku bagi baris NULL. MySQL menolak FK `ON DELETE CASCADE` di kolom dasar *stored* generated column.
+- Role default PRD §7 belum diketahui isinya, jadi hanya `SUPER ADMIN` yang di-seed; role lain dibuat admin lewat halaman Role. Kalau daftar PRD §7 sudah pasti, tambahkan di `TenantDatabaseSeeder`.
+- Tabel `pos_terminals` dan `purchasing_group_scopes` dibuat bersama modulnya di Phase 1. Import Excel untuk struktur organisasi, ubah/nonaktifkan unit organisasi, UI lookups, 2FA (wajib untuk SUPER ADMIN), dan impersonation operator juga belum dibuat.
+- Password broker dan cache permission spatie di-reset setiap kali konteks tenant berganti (`TenancyServiceProvider::resetTenantAwareServices`), karena keduanya menyimpan state tenant pertama yang memakainya.
+- Test paralel penomoran memakai `pcntl_fork` (20 proses × 5 nomor, masing-masing koneksi MySQL sendiri). Tanpa `lockForUpdate()` test ini gagal (hanya ±22 dari 100 nomor unik), jadi test-nya benar-benar menjaga lock.

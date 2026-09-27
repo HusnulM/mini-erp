@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\PermissionRegistrar;
 use Stancl\JobPipeline\JobPipeline;
@@ -64,11 +65,11 @@ class TenancyServiceProvider extends ServiceProvider
 
             Events\BootstrappingTenancy::class => [],
             Events\TenancyBootstrapped::class => [
-                fn () => self::scopePermissionCache(),
+                fn () => self::resetTenantAwareServices(),
             ],
             Events\RevertingToCentralContext::class => [],
             Events\RevertedToCentralContext::class => [
-                fn () => self::scopePermissionCache(),
+                fn () => self::resetTenantAwareServices(),
             ],
 
             // Resource syncing
@@ -82,13 +83,19 @@ class TenancyServiceProvider extends ServiceProvider
     }
 
     /**
-     * spatie/laravel-permission keeps roles/permissions in memory and in the
-     * cache under one key. Give every tenant its own key and drop what was
-     * loaded for the previous tenant, so a worker that handles several
-     * tenants (provisioning, queues) never mixes their roles.
+     * Services that capture tenant state when first used, reset whenever
+     * the tenant context changes (a worker handles several tenants):
+     *  - spatie/laravel-permission keeps roles/permissions in memory and in
+     *    the cache under one key: give every tenant its own key and drop
+     *    what was loaded for the previous tenant;
+     *  - the password broker holds the database connection of the tenant it
+     *    was first built for.
      */
-    public static function scopePermissionCache(): void
+    public static function resetTenantAwareServices(): void
     {
+        app()->forgetInstance('auth.password');
+        Password::clearResolvedInstance('auth.password');
+
         $base = 'spatie.permission.cache';
         config(['permission.cache.key' => tenancy()->initialized ? $base.'.tenant.'.tenant()->getTenantKey() : $base]);
 

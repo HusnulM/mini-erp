@@ -19,7 +19,7 @@ final readonly class ModuleManifest
      * @param  list<string>  $documentTypes
      * @param  list<string>  $emits
      * @param  list<string>  $listens
-     * @param  list<array{label: string, route: string, permission?: ?string, order?: int}>  $menu
+     * @param  list<array{label: string, route: string, params: array, permission: ?string, order: int}>  $menu
      */
     public function __construct(
         public string $code,
@@ -125,7 +125,7 @@ final readonly class ModuleManifest
         return array_values(array_unique($names));
     }
 
-    /** @return list<array{label: string, route: string, permission: ?string, order: int}> */
+    /** @return list<array{label: string, route: string, params: array, permission: ?string, order: int}> */
     private static function menu(mixed $value, string $file): array
     {
         if (! is_array($value)) {
@@ -140,6 +140,7 @@ final readonly class ModuleManifest
             return [
                 'label' => $item['label'],
                 'route' => $item['route'],
+                'params' => (array) ($item['params'] ?? []),
                 'permission' => $item['permission'] ?? null,
                 'order' => (int) ($item['order'] ?? 100),
             ];

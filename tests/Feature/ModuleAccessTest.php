@@ -27,6 +27,7 @@ use Modules\Core\Models\User;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
+use Tests\Concerns\CompletesSetup;
 use Tests\Concerns\ProvisionsTenants;
 use Tests\Concerns\RegistersTenants;
 use Tests\TestCase;
@@ -37,7 +38,7 @@ use Tests\TestCase;
  */
 class ModuleAccessTest extends TestCase
 {
-    use DatabaseMigrations, ProvisionsTenants, RegistersTenants;
+    use CompletesSetup, DatabaseMigrations, ProvisionsTenants, RegistersTenants;
 
     private Tenant $tenant;
 
@@ -53,6 +54,7 @@ class ModuleAccessTest extends TestCase
         $this->verify($this->tenant)->assertOk();
         $this->tenant->refresh();
         $this->assertSame(TenantStatus::Trial, $this->tenant->status);
+        $this->completeSetup($this->tenant);
 
         // A write route in a module, to exercise readonly mode.
         Route::middleware(['web', 'tenant', 'module:inventory', 'auth'])
@@ -95,7 +97,7 @@ class ModuleAccessTest extends TestCase
         $this->login();
         $this->get('http://alpha.erp.localhost/')
             ->assertOk()
-            ->assertSeeInOrder(['Dashboard', 'Master Data', 'Inventory', 'POS', 'Laporan'])
+            ->assertSeeInOrder(['Dashboard', 'Master Data', 'Inventory', 'POS', 'Laporan', 'Organisasi', 'Pengguna'])
             ->assertDontSee('data-module="procurement"', false);
         $this->get('http://alpha.erp.localhost/inventory')->assertOk()->assertSee('Inventory &amp; Warehouse', false);
     }

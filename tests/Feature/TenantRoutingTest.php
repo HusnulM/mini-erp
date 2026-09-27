@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Central\Enums\TenantStatus;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Concerns\ProvisionsTenants;
 use Tests\TestCase;
@@ -36,15 +37,25 @@ class TenantRoutingTest extends TestCase
         $alpha = $this->provisionTenant('alpha');
         $beta = $this->provisionTenant('beta');
 
-        $this->get('http://alpha.erp.localhost/')->assertOk()->assertSee('Alpha Store')->assertSee($alpha->db_name);
+        $this->get('http://alpha.erp.localhost/login')->assertOk()->assertSee('Alpha Store');
+        $this->assertSame($alpha->db_name, DB::connection()->getDatabaseName());
         tenancy()->end();
-        $this->get('http://beta.erp.localhost/')->assertOk()->assertSee('Beta Store')->assertSee($beta->db_name);
+        $this->get('http://beta.erp.localhost/login')->assertOk()->assertSee('Beta Store');
+        $this->assertSame($beta->db_name, DB::connection()->getDatabaseName());
     }
 
     #[Test]
     public function unknown_subdomains_return_404(): void
     {
         $this->get('http://nobody.erp.localhost/')->assertNotFound();
+    }
+
+    #[Test]
+    public function guests_are_sent_to_the_tenant_login(): void
+    {
+        $this->provisionTenant('alpha');
+
+        $this->get('http://alpha.erp.localhost/')->assertRedirect('/login');
     }
 
     #[Test]
@@ -68,6 +79,6 @@ class TenantRoutingTest extends TestCase
     {
         $this->provisionTenant('alpha', TenantStatus::PastDue);
 
-        $this->get('http://alpha.erp.localhost/')->assertOk();
+        $this->get('http://alpha.erp.localhost/login')->assertOk();
     }
 }

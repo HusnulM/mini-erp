@@ -9,7 +9,9 @@ use App\Central\Models\TenantModule;
 use App\Support\Modules\Installer;
 use App\Support\Modules\ModuleManifest;
 use App\Support\Modules\ModuleRegistry;
+use Modules\Core\Models\Company;
 use Modules\Core\Models\InstalledModule;
+use Modules\Core\Services\DocumentNumbers;
 use RuntimeException;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -19,7 +21,8 @@ use Throwable;
 /**
  * Installs a module into a tenant database (TDD §6 "ModuleManager: langkah
  * aktivasi", job part): tenant migrations → permissions (granted to SUPER
- * ADMIN) → Installer::seed() → installed_modules → tenant_modules active.
+ * ADMIN) → document sequences per company → Installer::seed() →
+ * installed_modules → tenant_modules active.
  *
  * Every part is idempotent: migrations are skipped when the module is
  * already in installed_modules, permissions and roles use findOrCreate, and
@@ -75,6 +78,12 @@ class ModuleInstaller
 
             $version = $tenant->run(function () use ($manifest, $installed) {
                 $this->syncPermissions($manifest);
+
+                // Document sequences of the module for every existing company;
+                // companies created later get them from Organization::createCompany().
+                foreach (Company::all() as $company) {
+                    app(DocumentNumbers::class)->ensureForCompany($company, [$manifest->code]);
+                }
 
                 if ($manifest->installer) {
                     $installer = app($manifest->installer);
